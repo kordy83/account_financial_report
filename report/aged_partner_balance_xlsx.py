@@ -1,6 +1,7 @@
 # Author: Julien Coux
 # Copyright 2016 Camptocamp SA
-# Copyright 2021 Tecnativa - Jo??o Marques
+# Copyright 2021 Tecnativa - João Marques
+# Copyright 2023 Tecnativa - Carolina Fernandez
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
 from odoo import _, models
@@ -16,7 +17,7 @@ class AgedPartnerBalanceXslx(models.AbstractModel):
         report_name = _("Aged Partner Balance")
         if company_id:
             company = self.env["res.company"].browse(company_id)
-            suffix = f" - {company.name} - {company.currency_id.name}"
+            suffix = " - {} - {}".format(company.name, company.currency_id.name)
             report_name = report_name + suffix
         return report_name
 
@@ -103,9 +104,14 @@ class AgedPartnerBalanceXslx(models.AbstractModel):
             2: {"header": _("Journal"), "field": "journal", "width": 8},
             3: {"header": _("Account"), "field": "account", "width": 9},
             4: {"header": _("Partner"), "field": "partner", "width": 25},
-            5: {"header": _("Ref - Label"), "field": "ref_label", "width": 40},
-            6: {"header": _("Due date"), "field": "due_date", "width": 11},
-            7: {
+            5: {
+                "header": _("Analytic Account"),
+                "field": "analytic_account_id",
+                "width": 25,
+            },
+            6: {"header": _("Ref - Label"), "field": "ref_label", "width": 40},
+            7: {"header": _("Due date"), "field": "due_date", "width": 11},
+            8: {
                 "header": _("Residual"),
                 "field": "residual",
                 "field_footer_total": "residual",
@@ -113,7 +119,7 @@ class AgedPartnerBalanceXslx(models.AbstractModel):
                 "type": "amount",
                 "width": 14,
             },
-            8: {
+            9: {
                 "header": _("Current"),
                 "field": "current",
                 "field_footer_total": "current",

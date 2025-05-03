@@ -1,4 +1,4 @@
-# ?? 2018 Forest and Biomass Romania SA
+# © 2018 Forest and Biomass Romania SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
 from odoo import api, fields, models
@@ -16,7 +16,6 @@ class AccountGroup(models.Model):
     )
     compute_account_ids = fields.Many2many(
         "account.account",
-        recursive=True,
         compute="_compute_group_accounts",
         string="Compute accounts",
         store=True,
@@ -33,7 +32,9 @@ class AccountGroup(models.Model):
         """Forms complete name of location from parent location to child location."""
         for group in self:
             if group.parent_id.complete_name:
-                group.complete_name = f"{group.parent_id.complete_name}/{group.name}"
+                group.complete_name = "{}/{}".format(
+                    group.parent_id.complete_name, group.name
+                )
             else:
                 group.complete_name = group.name
 
@@ -57,11 +58,16 @@ class AccountGroup(models.Model):
                 group.level = group.parent_id.level + 1
 
     @api.depends(
+        "code_prefix_start",
         "account_ids",
-        "group_child_ids.compute_account_ids",
+        "account_ids.code",
+        "group_child_ids",
+        "group_child_ids.account_ids.code",
     )
     def _compute_group_accounts(self):
-        for one in self:
-            one.compute_account_ids = (
-                one.account_ids | one.group_child_ids.compute_account_ids
-            )
+        account_obj = self.env["account.account"]
+        accounts = account_obj.search([])
+        for group in self:
+            prefix = group.code_prefix_start if group.code_prefix_start else group.name
+            gr_acc = accounts.filtered(lambda a: a.code.startswith(prefix)).ids
+            group.compute_account_ids = [(6, 0, gr_acc)]

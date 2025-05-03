@@ -1,5 +1,5 @@
-# ?? 2016 Julien Coux (Camptocamp)
-# ?? 2018 Forest and Biomass Romania SA
+# © 2016 Julien Coux (Camptocamp)
+# © 2018 Forest and Biomass Romania SA
 # Copyright 2020 ForgeFlow S.L. (https://www.forgeflow.com)
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
@@ -25,7 +25,7 @@ class TrialBalanceReport(models.AbstractModel):
     ):
         accounts_domain = [
             ("company_id", "=", company_id),
-            ("include_initial_balance", "=", True),
+            ("user_type_id.include_initial_balance", "=", True),
         ]
         if account_ids:
             accounts_domain += [("id", "in", account_ids)]
@@ -43,13 +43,7 @@ class TrialBalanceReport(models.AbstractModel):
         else:
             domain += [("move_id.state", "in", ["posted", "draft"])]
         if show_partner_details:
-            domain += [
-                (
-                    "account_id.account_type",
-                    "in",
-                    ["asset_receivable", "liability_payable"],
-                )
-            ]
+            domain += [("account_id.internal_type", "in", ["receivable", "payable"])]
         return domain
 
     def _get_initial_balances_pl_ml_domain(
@@ -65,7 +59,7 @@ class TrialBalanceReport(models.AbstractModel):
     ):
         accounts_domain = [
             ("company_id", "=", company_id),
-            ("include_initial_balance", "=", False),
+            ("user_type_id.include_initial_balance", "=", False),
         ]
         if account_ids:
             accounts_domain += [("id", "in", account_ids)]
@@ -83,13 +77,7 @@ class TrialBalanceReport(models.AbstractModel):
         else:
             domain += [("move_id.state", "in", ["posted", "draft"])]
         if show_partner_details:
-            domain += [
-                (
-                    "account_id.account_type",
-                    "in",
-                    ["asset_receivable", "liability_payable"],
-                )
-            ]
+            domain += [("account_id.internal_type", "in", ["receivable", "payable"])]
         return domain
 
     @api.model
@@ -105,7 +93,7 @@ class TrialBalanceReport(models.AbstractModel):
         show_partner_details,
     ):
         domain = [
-            ("display_type", "not in", ["line_note", "line_section"]),
+            ("display_type", "=", False),
             ("date", ">=", date_from),
             ("date", "<=", date_to),
         ]
@@ -122,13 +110,7 @@ class TrialBalanceReport(models.AbstractModel):
         else:
             domain += [("move_id.state", "in", ["posted", "draft"])]
         if show_partner_details:
-            domain += [
-                (
-                    "account_id.account_type",
-                    "in",
-                    ["asset_receivable", "liability_payable"],
-                )
-            ]
+            domain += [("account_id.internal_type", "in", ["receivable", "payable"])]
         return domain
 
     def _get_initial_balance_fy_pl_ml_domain(
@@ -143,7 +125,7 @@ class TrialBalanceReport(models.AbstractModel):
     ):
         accounts_domain = [
             ("company_id", "=", company_id),
-            ("include_initial_balance", "=", False),
+            ("user_type_id.include_initial_balance", "=", False),
         ]
         if account_ids:
             accounts_domain += [("id", "in", account_ids)]
@@ -161,13 +143,7 @@ class TrialBalanceReport(models.AbstractModel):
         else:
             domain += [("move_id.state", "in", ["posted", "draft"])]
         if show_partner_details:
-            domain += [
-                (
-                    "account_id.account_type",
-                    "in",
-                    ["asset_receivable", "liability_payable"],
-                )
-            ]
+            domain += [("account_id.internal_type", "in", ["receivable", "payable"])]
         return domain
 
     def _get_pl_initial_balance(
@@ -192,7 +168,7 @@ class TrialBalanceReport(models.AbstractModel):
         )
         initial_balances = self.env["account.move.line"].read_group(
             domain=domain,
-            fields=["account_id", "balance", "amount_currency:sum"],
+            fields=["account_id", "balance", "amount_currency"],
             groupby=["account_id"],
         )
         pl_initial_balance = 0.0
@@ -216,20 +192,12 @@ class TrialBalanceReport(models.AbstractModel):
             total_amount[acc_id]["debit"] = tb["debit"]
             total_amount[acc_id]["balance"] = tb["balance"]
             total_amount[acc_id]["initial_balance"] = 0.0
-            if foreign_currency:
-                total_amount[acc_id]["initial_currency_balance"] = 0.0
             if "__context" in tb and "group_by" in tb["__context"]:
                 group_by = tb["__context"]["group_by"][0]
                 gb_data = {}
                 tb_grouped = self.env["account.move.line"].read_group(
                     domain=tb["__domain"],
-                    fields=[
-                        group_by,
-                        "debit",
-                        "credit",
-                        "balance",
-                        "amount_currency:sum",
-                    ],
+                    fields=[group_by, "debit", "credit", "balance", "amount_currency"],
                     groupby=[group_by],
                 )
                 for tb2 in tb_grouped:
@@ -239,8 +207,6 @@ class TrialBalanceReport(models.AbstractModel):
                     gb_data[gb_id]["debit"] = tb2["debit"]
                     gb_data[gb_id]["balance"] = tb2["balance"]
                     gb_data[gb_id]["initial_balance"] = 0.0
-                    if foreign_currency:
-                        gb_data[gb_id]["initial_currency_balance"] = 0.0
                 total_amount[acc_id]["group_by"] = group_by
                 total_amount[acc_id]["group_by_data"] = gb_data
         for tb in tb_initial_acc:
@@ -433,7 +399,7 @@ class TrialBalanceReport(models.AbstractModel):
             )
         groupby_fields = ["account_id"]
         if grouped_by:
-            groupby_fields.append("analytic_account_ids")
+            groupby_fields.append("analytic_account_id")
         initial_domain_bs = self._get_initial_balances_bs_ml_domain(
             account_ids,
             journal_ids,
@@ -445,7 +411,7 @@ class TrialBalanceReport(models.AbstractModel):
         )
         tb_initial_acc_bs = self.env["account.move.line"].read_group(
             domain=initial_domain_bs,
-            fields=["account_id", "balance", "amount_currency:sum"],
+            fields=["account_id", "balance", "amount_currency"],
             groupby=groupby_fields,
         )
         initial_domain_pl = self._get_initial_balances_pl_ml_domain(
@@ -460,7 +426,7 @@ class TrialBalanceReport(models.AbstractModel):
         )
         tb_initial_acc_pl = self.env["account.move.line"].read_group(
             domain=initial_domain_pl,
-            fields=["account_id", "balance", "amount_currency:sum"],
+            fields=["account_id", "balance", "amount_currency"],
             groupby=groupby_fields,
         )
         tb_initial_acc_rg = tb_initial_acc_bs + tb_initial_acc_pl
@@ -480,7 +446,7 @@ class TrialBalanceReport(models.AbstractModel):
                     gb_data = {}
                     account_rg_grouped = self.env["account.move.line"].read_group(
                         domain=account_rg["__domain"],
-                        fields=[group_by, "balance", "amount_currency:sum"],
+                        fields=[group_by, "balance", "amount_currency"],
                         groupby=[group_by],
                     )
                     for a_rg2 in account_rg_grouped:
@@ -506,20 +472,20 @@ class TrialBalanceReport(models.AbstractModel):
         )
         tb_period_acc = self.env["account.move.line"].read_group(
             domain=period_domain,
-            fields=["account_id", "debit", "credit", "balance", "amount_currency:sum"],
+            fields=["account_id", "debit", "credit", "balance", "amount_currency"],
             groupby=groupby_fields,
         )
 
         if show_partner_details:
             tb_initial_prt_bs = self.env["account.move.line"].read_group(
                 domain=initial_domain_bs,
-                fields=["account_id", "partner_id", "balance", "amount_currency:sum"],
+                fields=["account_id", "partner_id", "balance", "amount_currency"],
                 groupby=["account_id", "partner_id"],
                 lazy=False,
             )
             tb_initial_prt_pl = self.env["account.move.line"].read_group(
                 domain=initial_domain_pl,
-                fields=["account_id", "partner_id", "balance", "amount_currency:sum"],
+                fields=["account_id", "partner_id", "balance", "amount_currency"],
                 groupby=["account_id", "partner_id"],
             )
             tb_initial_prt = tb_initial_prt_bs + tb_initial_prt_pl
@@ -533,7 +499,7 @@ class TrialBalanceReport(models.AbstractModel):
                     "debit",
                     "credit",
                     "balance",
-                    "amount_currency:sum",
+                    "amount_currency",
                 ],
                 groupby=["account_id", "partner_id"],
                 lazy=False,
@@ -842,6 +808,7 @@ class TrialBalanceReport(models.AbstractModel):
         return groups_data
 
     def _get_report_values(self, docids, data):
+        res = super()._get_report_values(docids, data)
         show_partner_details = data["show_partner_details"]
         wizard_id = data["wizard_id"]
         company = self.env["res.company"].browse(data["company_id"])
@@ -936,29 +903,31 @@ class TrialBalanceReport(models.AbstractModel):
                     total_amount[account_id]["currency_name"] = accounts_data[
                         account_id
                     ]["currency_name"]
-        return {
-            "doc_ids": [wizard_id],
-            "doc_model": "trial.balance.report.wizard",
-            "docs": self.env["trial.balance.report.wizard"].browse(wizard_id),
-            "foreign_currency": data["foreign_currency"],
-            "company_name": company.display_name,
-            "company_currency": company.currency_id,
-            "currency_name": company.currency_id.name,
-            "date_from": data["date_from"],
-            "date_to": data["date_to"],
-            "only_posted_moves": data["only_posted_moves"],
-            "hide_account_at_0": data["hide_account_at_0"],
-            "show_partner_details": data["show_partner_details"],
-            "limit_hierarchy_level": data["limit_hierarchy_level"],
-            "show_hierarchy": show_hierarchy,
-            "hide_parent_hierarchy_level": data["hide_parent_hierarchy_level"],
-            "trial_balance": trial_balance,
-            "trial_balance_grouped": trial_balance_grouped,
-            "total_amount": total_amount,
-            "total_amount_grouped": total_amount_grouped,
-            "accounts_data": accounts_data,
-            "partners_data": partners_data,
-            "show_hierarchy_level": show_hierarchy_level,
-            "currency_model": self.env["res.currency"],
-            "grouped_by": grouped_by,
-        }
+        res.update(
+            {
+                "doc_ids": [wizard_id],
+                "doc_model": "trial.balance.report.wizard",
+                "docs": self.env["trial.balance.report.wizard"].browse(wizard_id),
+                "foreign_currency": data["foreign_currency"],
+                "company_name": company.display_name,
+                "company_currency": company.currency_id,
+                "currency_name": company.currency_id.name,
+                "date_from": data["date_from"],
+                "date_to": data["date_to"],
+                "only_posted_moves": data["only_posted_moves"],
+                "hide_account_at_0": data["hide_account_at_0"],
+                "show_partner_details": data["show_partner_details"],
+                "limit_hierarchy_level": data["limit_hierarchy_level"],
+                "show_hierarchy": show_hierarchy,
+                "hide_parent_hierarchy_level": data["hide_parent_hierarchy_level"],
+                "trial_balance": trial_balance,
+                "trial_balance_grouped": trial_balance_grouped,
+                "total_amount": total_amount,
+                "total_amount_grouped": total_amount_grouped,
+                "accounts_data": accounts_data,
+                "partners_data": partners_data,
+                "show_hierarchy_level": show_hierarchy_level,
+                "grouped_by": grouped_by,
+            }
+        )
+        return res

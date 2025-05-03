@@ -2,10 +2,9 @@
 #  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
 from odoo.exceptions import ValidationError
-from odoo.tests import common, tagged
+from odoo.tests import common
 
 
-@tagged("post_install", "-at_install")
 class TestAccountAgeReportConfiguration(common.TransactionCase):
     @classmethod
     def setUpClass(cls):

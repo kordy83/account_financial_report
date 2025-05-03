@@ -30,6 +30,7 @@ class TestVATReport(AccountTestInvoicingCommon):
         )
         move_form.invoice_date = invoice_date or fields.Date.from_string("2019-01-01")
         move_form.partner_id = partner or cls.partner_a
+        move_form.name = name or "Test"
         lines = lines or []
         for line in lines:
             with move_form.invoice_line_ids.new() as line_form:
@@ -70,9 +71,9 @@ class TestVATReport(AccountTestInvoicingCommon):
             [
                 ("company_id", "=", cls.company.id),
                 (
-                    "account_type",
+                    "user_type_id",
                     "=",
-                    "liability_non_current",
+                    cls.env.ref("account.data_account_type_non_current_liabilities").id,
                 ),
             ],
             limit=1,
@@ -218,7 +219,7 @@ class TestVATReport(AccountTestInvoicingCommon):
                 "tax_detail": True,
             }
         )
-        data = vat_report._prepare_vat_report()
+        data = vat_report._prepare_report_data()
         res_data = self.env[
             "report.account_financial_report.vat_report"
         ]._get_report_values(vat_report, data)

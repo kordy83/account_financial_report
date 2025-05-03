@@ -50,10 +50,9 @@ class TrialBalanceReportWizard(models.TransientModel):
     show_partner_details = fields.Boolean()
     partner_ids = fields.Many2many(comodel_name="res.partner", string="Filter partners")
     journal_ids = fields.Many2many(comodel_name="account.journal")
-    only_one_unaffected_earnings_account = fields.Boolean(
-        readonly=True,
-        default=lambda self: self._only_one_unaffected_earnings_account(),
-    )
+
+    not_only_one_unaffected_earnings_account = fields.Boolean(readonly=True)
+
     foreign_currency = fields.Boolean(
         string="Show foreign currency",
         help="Display foreign currency for move lines, unless "
@@ -117,21 +116,17 @@ class TrialBalanceReportWizard(models.TransientModel):
             else:
                 wiz.fy_start_date = False
 
-    def _only_one_unaffected_earnings_account(self):
-        count = self.env["account.account"].search_count(
-            [
-                ("account_type", "=", "equity_unaffected"),
-                ("company_id", "=", self.company_id.id or self.env.company.id),
-            ]
-        )
-        return count == 1
-
     @api.onchange("company_id")
     def onchange_company_id(self):
         """Handle company change."""
-        self.only_one_unaffected_earnings_account = (
-            self._only_one_unaffected_earnings_account()
+        account_type = self.env.ref("account.data_unaffected_earnings")
+        count = self.env["account.account"].search_count(
+            [
+                ("user_type_id", "=", account_type.id),
+                ("company_id", "=", self.company_id.id),
+            ]
         )
+        self.not_only_one_unaffected_earnings_account = count != 1
         if (
             self.company_id
             and self.date_range_id.company_id
@@ -201,13 +196,11 @@ class TrialBalanceReportWizard(models.TransientModel):
         if self.receivable_accounts_only or self.payable_accounts_only:
             domain = [("company_id", "=", self.company_id.id)]
             if self.receivable_accounts_only and self.payable_accounts_only:
-                domain += [
-                    ("account_type", "in", ("asset_receivable", "liability_payable"))
-                ]
+                domain += [("internal_type", "in", ("receivable", "payable"))]
             elif self.receivable_accounts_only:
-                domain += [("account_type", "=", "asset_receivable")]
+                domain += [("internal_type", "=", "receivable")]
             elif self.payable_accounts_only:
-                domain += [("account_type", "=", "liability_payable")]
+                domain += [("internal_type", "=", "payable")]
             self.account_ids = self.env["account.account"].search(domain)
         else:
             self.account_ids = None
@@ -223,10 +216,11 @@ class TrialBalanceReportWizard(models.TransientModel):
 
     @api.depends("company_id")
     def _compute_unaffected_earnings_account(self):
+        account_type = self.env.ref("account.data_unaffected_earnings")
         for record in self:
             record.unaffected_earnings_account = self.env["account.account"].search(
                 [
-                    ("account_type", "=", "equity_unaffected"),
+                    ("user_type_id", "=", account_type.id),
                     ("company_id", "=", record.company_id.id),
                 ]
             )
@@ -239,7 +233,7 @@ class TrialBalanceReportWizard(models.TransientModel):
 
     def _print_report(self, report_type):
         self.ensure_one()
-        data = self._prepare_report_trial_balance()
+        data = self._prepare_report_data()
         if report_type == "xlsx":
             report_name = "a_f_r.report_trial_balance_xlsx"
         else:
@@ -253,29 +247,31 @@ class TrialBalanceReportWizard(models.TransientModel):
             .report_action(self, data=data)
         )
 
-    def _prepare_report_trial_balance(self):
-        self.ensure_one()
-        return {
-            "wizard_id": self.id,
-            "date_from": self.date_from,
-            "date_to": self.date_to,
-            "only_posted_moves": self.target_move == "posted",
-            "hide_account_at_0": self.hide_account_at_0,
-            "foreign_currency": self.foreign_currency,
-            "company_id": self.company_id.id,
-            "account_ids": self.account_ids.ids or [],
-            "partner_ids": self.partner_ids.ids or [],
-            "journal_ids": self.journal_ids.ids or [],
-            "fy_start_date": self.fy_start_date,
-            "show_hierarchy": self.show_hierarchy,
-            "limit_hierarchy_level": self.limit_hierarchy_level,
-            "show_hierarchy_level": self.show_hierarchy_level,
-            "hide_parent_hierarchy_level": self.hide_parent_hierarchy_level,
-            "show_partner_details": self.show_partner_details,
-            "unaffected_earnings_account": self.unaffected_earnings_account.id,
-            "account_financial_report_lang": self.env.lang,
-            "grouped_by": self.grouped_by,
-        }
+    def _prepare_report_data(self):
+        res = super()._prepare_report_data()
+        res.update(
+            {
+                "date_from": self.date_from,
+                "date_to": self.date_to,
+                "only_posted_moves": self.target_move == "posted",
+                "hide_account_at_0": self.hide_account_at_0,
+                "foreign_currency": self.foreign_currency,
+                "company_id": self.company_id.id,
+                "account_ids": self.account_ids.ids or [],
+                "partner_ids": self.partner_ids.ids or [],
+                "journal_ids": self.journal_ids.ids or [],
+                "fy_start_date": self.fy_start_date,
+                "show_hierarchy": self.show_hierarchy,
+                "limit_hierarchy_level": self.limit_hierarchy_level,
+                "show_hierarchy_level": self.show_hierarchy_level,
+                "hide_parent_hierarchy_level": self.hide_parent_hierarchy_level,
+                "show_partner_details": self.show_partner_details,
+                "unaffected_earnings_account": self.unaffected_earnings_account.id,
+                "account_financial_report_lang": self.env.lang,
+                "grouped_by": self.grouped_by,
+            }
+        )
+        return res
 
     def _export(self, report_type):
         """Default export is PDF."""

@@ -36,8 +36,9 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
             {
                 "code": "001",
                 "name": "Account 001",
-                "group_id": cls.group2.id,
-                "account_type": "income_other",
+                "user_type_id": cls.env.ref(
+                    "account.data_account_type_other_income"
+                ).id,
             },
         )
         cls.account100 = cls.company_data["default_account_receivable"]
@@ -45,9 +46,9 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
         cls.account110 = cls.env["account.account"].search(
             [
                 (
-                    "account_type",
+                    "user_type_id",
                     "=",
-                    "equity_unaffected",
+                    cls.env.ref("account.data_unaffected_earnings").id,
                 ),
             ],
             limit=1,
@@ -58,7 +59,9 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
                 "code": "200",
                 "name": "Account 200",
                 "group_id": cls.group2.id,
-                "account_type": "income_other",
+                "user_type_id": cls.env.ref(
+                    "account.data_account_type_other_income"
+                ).id,
             },
         )
         cls.account300 = cls._create_account_account(
@@ -66,7 +69,9 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
             {
                 "code": "300",
                 "name": "Account 300",
-                "account_type": "income_other",
+                "user_type_id": cls.env.ref(
+                    "account.data_account_type_other_income"
+                ).id,
             },
         )
         cls.account301 = cls._create_account_account(
@@ -75,7 +80,9 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
                 "code": "301",
                 "name": "Account 301",
                 "group_id": cls.group2.id,
-                "account_type": "income_other",
+                "user_type_id": cls.env.ref(
+                    "account.data_account_type_other_income"
+                ).id,
             },
         )
         cls.previous_fy_date_start = "2015-01-01"
@@ -88,9 +95,9 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
         cls.unaffected_account = cls.env["account.account"].search(
             [
                 (
-                    "account_type",
+                    "user_type_id",
                     "=",
-                    "equity_unaffected",
+                    cls.env.ref("account.data_unaffected_earnings").id,
                 ),
             ],
             limit=1,
@@ -192,7 +199,7 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
                 "show_partner_details": with_partners,
             }
         )
-        data = trial_balance._prepare_report_trial_balance()
+        data = trial_balance._prepare_report_data()
         res_data = self.env[
             "report.account_financial_report.trial_balance"
         ]._get_report_values(trial_balance, data)
@@ -547,7 +554,7 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
                 "fy_start_date": self.fy_date_start,
             }
         )
-        data = trial_balance._prepare_report_trial_balance()
+        data = trial_balance._prepare_report_data()
         res_data = self.env[
             "report.account_financial_report.trial_balance"
         ]._get_report_values(trial_balance, data)
@@ -600,7 +607,7 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
                 "fy_start_date": self.fy_date_start,
             }
         )
-        data = trial_balance._prepare_report_trial_balance()
+        data = trial_balance._prepare_report_data()
         res_data = self.env[
             "report.account_financial_report.trial_balance"
         ]._get_report_values(trial_balance, data)
@@ -654,7 +661,7 @@ class TestTrialBalanceReport(AccountTestInvoicingCommon):
                 "fy_start_date": self.fy_date_start,
             }
         )
-        data = trial_balance._prepare_report_trial_balance()
+        data = trial_balance._prepare_report_data()
         res_data = self.env[
             "report.account_financial_report.trial_balance"
         ]._get_report_values(trial_balance, data)

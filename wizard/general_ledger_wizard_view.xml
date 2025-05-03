@@ -13,7 +13,9 @@
                         groups="base.group_multi_company"
                     />
                 </group>
-                <div invisible="not only_one_unaffected_earnings_account">
+                <div
+                    attrs="{'invisible': [('not_only_one_unaffected_earnings_account', '=', True)]}"
+                >
                     <group name="filters">
                         <group name="date_range">
                             <field name="date_range_id" />
@@ -27,6 +29,7 @@
                             <field name="centralize" />
                             <field name="hide_account_at_0" />
                             <field name="foreign_currency" />
+                            <field name="show_analytic_tags" />
                             <field name="show_cost_center" />
                         </group>
                     </group>
@@ -80,6 +83,14 @@
                                 options="{'no_create': True}"
                             />
                         </page>
+                        <page string="Filter analytic tags">
+                            <field
+                                name="analytic_tag_ids"
+                                widget="many2many_tags"
+                                nolabel="1"
+                                options="{'no_create': True}"
+                            />
+                        </page>
                         <page string="Additional Filtering">
                             <style>
                                 .o_domain_show_selection_button {display: none}
@@ -91,10 +102,22 @@
                                 context="{'skip_search_count': 1}"
                             />
                         </page>
+                        <page name="columns" string="Columns">
+                            <field
+                                name="column_ids"
+                                context="{'default_res_name': 'general.ledger.report.wizard'}"
+                                widget="one2many"
+                            />
+                        </page>
                     </notebook>
                 </div>
-                <div invisible="only_one_unaffected_earnings_account">
-                    <field name="only_one_unaffected_earnings_account" invisible="1" />
+                <div
+                    attrs="{'invisible': [('not_only_one_unaffected_earnings_account', '=', False)]}"
+                >
+                    <field
+                        name="not_only_one_unaffected_earnings_account"
+                        invisible="1"
+                    />
                     <group />
                     <h4>
                         General Ledger can be computed only if selected company have
@@ -103,7 +126,9 @@
                     <group />
                 </div>
                 <footer>
-                    <div invisible="not only_one_unaffected_earnings_account">
+                    <div
+                        attrs="{'invisible': [('not_only_one_unaffected_earnings_account', '=', True)]}"
+                    >
                         <button
                             name="button_export_html"
                             string="View"
@@ -126,7 +151,9 @@
                         or
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </div>
-                    <div invisible="only_one_unaffected_earnings_account">
+                    <div
+                        attrs="{'invisible': [('not_only_one_unaffected_earnings_account', '=', False)]}"
+                    >
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </div>
                 </footer>

@@ -52,12 +52,12 @@
                         <t
                             t-set="aml_domain_extra"
                             t-if="grouped_item['id'] > 0"
-                            t-value="[('analytic_account_ids', '=', grouped_item['id'])]"
+                            t-value="[('analytic_account_id', '=', grouped_item['id'])]"
                         />
                         <t
                             t-set="aml_domain_extra"
                             t-else=""
-                            t-value="[('analytic_account_ids', '=', False)]"
+                            t-value="[('analytic_account_id', '=', False)]"
                         />
                         <div class="act_as_table data_table" style="width: 100%;">
                             <t
@@ -610,10 +610,6 @@
                 <t t-if="not show_partner_details">
                     <t t-if="balance['type'] == 'account_type'">
                         <t t-if="balance['currency_id']">
-                            <t
-                                t-set="balance_currency"
-                                t-value="currency_model.browse(balance['currency_id'])"
-                            />
                             <!--## Initial balance cur.-->
                             <div class="act_as_cell amount" t-att-style="style">
                                 <t
@@ -626,7 +622,7 @@
                                 >
                                     <t
                                         t-out="balance['initial_currency_balance']"
-                                        t-options="{'widget': 'monetary', 'display_currency': balance_currency}"
+                                        t-options="{'widget': 'monetary', 'display_currency': balance['currency_id']}"
                                     />
                                 </span>
                                 <!--                            <t t-if="line.account_group_id">-->
@@ -658,12 +654,8 @@
                                     res-model="account.move.line"
                                 >
                                     <t
-                                        t-set="total_amount_item_currency"
-                                        t-value="currency_model.browse(total_amount[account_id]['currency_id'])"
-                                    />
-                                    <t
                                         t-out="total_amount[account_id][partner_id]['initial_currency_balance']"
-                                        t-options="{'widget': 'monetary', 'display_currency': total_amount_item_currency}"
+                                        t-options="{'widget': 'monetary', 'display_currency': total_amount[account_id]['currency_id']}"
                                     />
                                 </span>
                             </div>
@@ -685,7 +677,7 @@
                                 >
                                     <t
                                         t-out="balance['ending_currency_balance']"
-                                        t-options="{'widget': 'monetary', 'display_currency': balance_currency}"
+                                        t-options="{'widget': 'monetary', 'display_currency': balance['currency_id']}"
                                     />
                                 </span>
                                 <!--                            <t t-if="line.account_group_id">-->
@@ -717,12 +709,8 @@
                                     res-model="account.move.line"
                                 >
                                     <t
-                                        t-set="total_amount_item_currency"
-                                        t-value="currency_model.browse(total_amount[account_id]['currency_id'])"
-                                    />
-                                    <t
                                         t-out="total_amount[account_id][partner_id]['ending_currency_balance']"
-                                        t-options="{'widget': 'monetary', 'display_currency': total_amount_item_currency}"
+                                        t-options="{'widget': 'monetary', 'display_currency': total_amount[account_id]['currency_id']}"
                                     />
                                 </span>
                             </t>
